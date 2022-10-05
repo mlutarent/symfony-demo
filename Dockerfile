@@ -3,7 +3,7 @@
 ARG PHP_VERSION=8.1
 
 # Prod image
-FROM php:${PHP_VERSION}-fpm-alpine AS app_php
+FROM php:${PHP_VERSION}-fpm-alpine
 
 # Allow to use development versions of Symfony
 ARG STABILITY="stable"
@@ -87,5 +87,3 @@ RUN set -eux; \
     fi
 
 WORKDIR /srv/app
-
-COPY --from=app_php /srv/app/public public/
