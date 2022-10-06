@@ -12,6 +12,7 @@ services:
       - php_socket:/var/run/php
       - assets:/srv/app/public/build
     healthcheck:
+      test: ["CMD", "docker-healthcheck"]
       interval: 10s
       timeout: 3s
       retries: 3

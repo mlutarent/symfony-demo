@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: symfony-demo
+  name: symfony-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: symfony-demo
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: symfony-demo
+    spec:
+      initContainers:
+      - name: populate
+        image: registry3425.azurecr.io/symfony-demo-php:v1
+        volumeMounts:
+          - name: assets
+            mountPath: /assets
+        command: [cp, -r, /srv/app/public/build, /assets/]
+      containers:
+        - name: nginx
+          env:
+            - name: SERVER_NAME
+              value: localhost
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/run/php
+              name: php-socket
+            - mountPath: /srv/app/public
+              name: assets
+              readOnly: true
+            - mountPath: /etc/nginx/conf.d/
+              readOnly: true
+              name: nginx-conf
+        - name: php
+          env:
+            - name: DATABASE_URL
+              value: sqlite:///%kernel.project_dir%/data/database.sqlite
+          image: registry3425.azurecr.io/symfony-demo-php:v1
+          livenessProbe:
+            exec:
+              command:
+                - docker-healthcheck
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/run/php
+              name: php-socket
+      restartPolicy: Always
+      volumes:
+        - name: php-socket
+          persistentVolumeClaim:
+            claimName: php-socket
+        - name: assets
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+            items:
+              - key: default.conf
+                path: default.conf
